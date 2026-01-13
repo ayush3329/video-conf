@@ -2,17 +2,20 @@ import React, { useEffect, useState } from 'react';
 import  wemeetlogo  from "../../assets/images/wemeetlogo.png"
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../redux/states/store';
-import { userState } from '../../types/redux-state-types';
+import { userState, mediaState } from '../../types/redux-state-types';
 import { saveUserDetail } from '../../redux/states/user/userSlice';
-import { useSignInMutation } from '../../redux/apis/auth';
+import { useLazySignInQuery } from '../../redux/apis/auth';
+import { useNavigate } from 'react-router-dom';
 
 export default function MeetLoginPage() {
 
   const dispatch = useDispatch<AppDispatch>();
+  const nav = useNavigate();
   const userData: userState = useSelector((state:RootState)=> state.user)
+  
 
   // apis
-  const [signIn, {data, isLoading, isSuccess, isError, error}] = useSignInMutation();
+  const [signIn, {data, isLoading, isSuccess, isError, error}] = useLazySignInQuery();
 
   
   const [username, setUsername] = useState('');
@@ -24,7 +27,7 @@ export default function MeetLoginPage() {
     if(username && password) {
         console.log("Login Attempt:", { username, password });
         signIn({username, password})
-        // dispatch(saveUserDetail({isSignedIn: true, name: username}))
+        nav("/room")
     } else {
         alert("Please fill in all fields");
     }

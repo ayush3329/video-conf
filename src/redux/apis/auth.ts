@@ -7,14 +7,11 @@ export const authApiSlice = createApi({
     }),
     endpoints: (builder)=>{
         return {
-            signIn: builder.mutation({
-                query: (body)=>({
-                    url: "/users/logIn",
-                    method: "POST",
-                    body: body,
-                    headers: {
-                        "Content-Type": "application/json",
-                    }
+            signIn: builder.query({
+                query: (params)=>({
+                    url: "/api/v1/users/login",
+                    method: "GET",
+                    params: params
                 })
             })
         }
@@ -23,7 +20,7 @@ export const authApiSlice = createApi({
 
 
 export const {
-    useSignInMutation
+    useLazySignInQuery
     
 
 } = authApiSlice

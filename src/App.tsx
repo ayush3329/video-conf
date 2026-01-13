@@ -2,24 +2,26 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import "./App.css"
 
 import LoginPage from './page/login/login';
-import RegisterPage from './page/RegisterPage/RegisterPage';
 import ForgotPasswordPage from './page/forgotPassword/forgotPassword';
 import ResetPasswordPage from './page/forgotPassword/forgotPassword';
-import MeetPage from './page/MeetPage/MeetPage'; // This is meet.ejs
+import Room from './page/Join-Room/room'; // This is meet.ejs
 import NotFoundPage from './page/notFound/NotFound'; // This is 404.ejs
+import Meeting from './page/Meeting/Meeting';
+import { useRef } from 'react';
 
 function App() {
+  const videoRef = useRef(null);  
   return (
     <Routes>
       {/* Auth Routes */}
       <Route path="/login" element={ <LoginPage /> } />
-      <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* App Routes */}
       <Route path="/" element={<LoginPage />} />
-      <Route path="/meet" element={<MeetPage />} />
+      <Route path="/room" element={<Room videoRef={videoRef}/>} />
+      <Route path="/meeting" element={<Meeting videoRef={videoRef}/>} />
 
       {/* 404 Handling */}
       <Route path="/404" element={<NotFoundPage />} />
