@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import  wemeetlogo  from "../../assets/images/wemeetlogo.png"
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../redux/states/store';
@@ -12,7 +12,7 @@ export default function MeetLoginPage() {
   const userData: userState = useSelector((state:RootState)=> state.user)
 
   // apis
-  const [signIn, {data, isLoading, isError, error}] = useSignInMutation();
+  const [signIn, {data, isLoading, isSuccess, isError, error}] = useSignInMutation();
 
   
   const [username, setUsername] = useState('');
@@ -29,6 +29,14 @@ export default function MeetLoginPage() {
         alert("Please fill in all fields");
     }
   };
+
+  // effects
+  useEffect(()=>{
+    if(!isLoading && isSuccess){
+      console.log("data ", data);
+      dispatch(saveUserDetail({isSignedIn: true, name: data?.username}))
+    } 
+  }, [isLoading, isSuccess])
 
   return (
     <div className="meet-login-wrapper">
