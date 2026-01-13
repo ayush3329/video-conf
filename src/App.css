@@ -1,0 +1,64 @@
+
+.meet-login-wrapper {
+  background: linear-gradient(-45deg, #85ace0, #af95da, #8ba3da, #86d8be, #8da6be);
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: gradientBG 15s ease infinite;
+  background-size: 400% 400%;
+}
+
+.login-container {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+.logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 30px;
+  /* Ensure image behaves correctly */
+  object-fit: contain; 
+}
+
+.btn-primary {
+  border: none;
+  width: 100%;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #6441a5 100%);
+}
+
+.meet-login-wrapper h2 {
+  margin-bottom: 30px;
+  color: #333;
+}
+
+@keyframes gradientBG {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  25% {
+    background-position: 100% 50%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  75% {
+    background-position: 0% 100%;
+  }
+}
