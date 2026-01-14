@@ -1,0 +1,306 @@
+/* Meeting.css */
+
+/* Global Layout overrides for the meeting route */
+.meeting-wrapper {
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Roboto', sans-serif;
+  background: #f1f3f4;
+}
+
+/* Prejoin & meeting wrappers */
+#prejoinView,
+#meetingView {
+  flex: 1 1 auto;
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+/* Prejoin View Specifics */
+#prejoinView {
+  background: linear-gradient(-45deg, #85ace0, #af95da, #8ba3da, #86d8be, #8da6be);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+#prejoinView .flex-grow-1 {
+  flex: 1;
+}
+
+@keyframes gradientBG {
+  0%, 100% { background-position: 0% 50%; }
+  25% { background-position: 100% 50%; }
+  50% { background-position: 100% 100%; }
+  75% { background-position: 0% 100%; }
+}
+
+.prejoin-card-animate {
+  animation: cardIn 1.2s cubic-bezier(.23, 1.15, .66, 1) 0s 1 both;
+}
+
+@keyframes cardIn {
+  0% { transform: translateY(40px) scale(0.96); opacity: 0; }
+  60% { transform: translateY(-8px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.prejoin-head-gradient {
+  background: linear-gradient(90deg, #fafafa, #ccece2 60%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+#prejoinView .card {
+  box-shadow: 0 16px 32px 8px rgba(89, 120, 150, 0.14), 0 1.5px 12px 2px rgba(74, 143, 233, 0.14);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+#prejoinView .form-control {
+  border-radius: 0.75rem;
+  font-size: 1rem;
+}
+
+/* Preview Area */
+.preview-container {
+  height: 350px; 
+  overflow: hidden;
+  position: relative;
+}
+
+.preview-container.animate-fade {
+  animation: fadeInPreview 1.5s 0.2s both;
+}
+
+@keyframes fadeInPreview {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+#prejoin_title {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  color: #fff;
+  font-size: x-large;
+  font-weight: 400;
+  text-align: center;
+  animation: fadeInTitle 1.2s 0.8s both;
+}
+
+@keyframes fadeInTitle {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Meeting View Layout */
+.video-container {
+  display: flex;
+  flex: 1;
+  gap: 10px;
+  padding: 1rem;
+  overflow: hidden; /* Changed from auto to hidden to manage scroll in grid */
+  background-color: #1a1a1a;
+  position: relative;
+}
+
+.video-grid {
+  width: 100%;
+  display: grid;
+  gap: 1rem;
+  height: 100%;
+  grid-auto-rows: 1fr;
+  padding-bottom: 60px;
+  overflow-y: auto;
+}
+
+.video-grid.cols-1 { grid-template-columns: 1fr; }
+.video-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.video-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.video-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+.participant-box {
+  background: linear-gradient(135deg, #3a3a3a 0%, #2d2d2d 100%);
+  border-radius: 0.75rem;
+  position: relative;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: all 0.3s;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.participant-box:hover {
+  box-shadow: 0 0 0 3px #1a73e8;
+}
+
+.video-elm {
+  width: 100%;
+  height: 100%;
+  background: black;
+  transform: scaleX(-1);
+  object-fit: cover;
+}
+
+/* Sidebars (Chat, Tasks, Transcription) */
+.sidebar-panel {
+  gap: 5px;
+  position: sticky;
+  top: 0px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: hidden;
+  overflow-x: hidden;
+  background: white;
+  border-radius: 0.75rem;
+  padding: 0px;
+  transition: width 0.4s cubic-bezier(.7, .3, .2, 1), padding 0.4s;
+}
+
+.sidebar-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 0;
+  border-bottom: 1px solid #eee;
+  justify-content: space-between;
+}
+
+.sidebar-header h5 {
+  margin: 0;
+  width: 100%;
+  text-align: center;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Chat Specifics */
+.input_section {
+  margin-top: auto;
+  background: white;
+  padding: 5px;
+}
+
+#chat_input {
+  outline: none;
+  border: none;
+  box-shadow: none;
+}
+
+/* Transcription / Tasks Split Views */
+.split-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  padding: 6px;
+  gap: 6px;
+}
+
+.split-top {
+  flex: 6;
+  display: flex;
+  flex-direction: column;
+  background: #fafafa;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.split-bottom {
+  flex: 4;
+  display: flex;
+  flex-direction: column;
+  background: #fafafa;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.panel_heading {
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-bottom: 1px solid #ddd;
+  background: #ffffff;
+}
+
+.scrollable-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+/* Controls */
+.meeting-controls {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  gap: 12px;
+}
+
+.action_button > button {
+  transition: transform 0.22s cubic-bezier(.5, 2, .3, 1), box-shadow 0.22s;
+}
+
+.action_button > button:hover {
+  transform: scale(1.11) translateY(-2px);
+  box-shadow: 0 4px 20px #1a73e830;
+}
+
+#msg_notify {
+  background-color: red;
+  color: white;
+  font-size: 0.75rem;
+  display: none; /* Controlled by React state in component */
+  border-radius: 12px;
+  position: absolute;
+  top: -6px;
+  padding: 7px;
+  right: -5px;
+}
+
+/* Pinned Overlay */
+#pinnedOverlay {
+  position: fixed;
+  padding: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  height: 100vh;
+  background-color: #000;
+  z-index: 2000;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+}
+
+#pinnedOverlay video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}

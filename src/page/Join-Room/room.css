@@ -96,7 +96,7 @@
 }
 
 .control-btn {
-    background: rgba(45, 45, 45, 0.7);
+    background: white;
     border: 1px solid rgba(255, 255, 255, 0.2);
     box-sizing: border-box; 
     border-radius: 8px;
@@ -105,13 +105,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: black;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .control-btn:hover {
-    background: rgba(255, 255, 255, 0.4);
+    background: rgba(240, 235, 235, 0.733);
 }
 
 .control-btn.active-red {
@@ -219,6 +219,8 @@
     position: absolute;
     bottom: 20px;
     left: 50%;
+    /* border: 1px solid whitesmoke; */
+    width: 450px;
     transform: translateX(-50%);
     z-index: 10;
     display: flex;

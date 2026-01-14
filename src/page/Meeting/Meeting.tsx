@@ -1,121 +1,119 @@
-import { useState } from 'react'
-import useStream from '../../Hooks/useStream';
-import { AppDispatch, RootState } from '../../redux/states/store';
-import { useDispatch, useSelector } from 'react-redux';
-import { mediaState } from '../../types/redux-state-types';
-import { useSearchParams } from "react-router-dom";
-import { turnOnCamera, turnOnMic, turnOffCamera, turnOffMic } from "../../redux/states/media-controls/mediaControlSlice"
+import React, { useState, useRef } from 'react';
+import './meeting.css'; // Importing the separate CSS file
+import Controls from '../../Components/Controls/Controls';
+import Chat from '../../Components/Chat/Chat';
 
+// Types for Sidebar State
+type SidebarType = 'none' | 'chat' | 'tasks' | 'transcription';
 
-export default function Meeting({videoRef}: {videoRef: React.RefObject<null>}) {
-    const [searchParams] = useSearchParams();
-    const username = searchParams.get("username") || "unknown";
-    const dispatch = useDispatch<AppDispatch>()
-    const mediaControl: mediaState = useSelector((state: RootState)=> state.media)
+const Meeting = ({videoRef}: {videoRef: React.RefObject<null>}) => {
+  // State Management
+  const [activeSidebar, setActiveSidebar] = useState<SidebarType>('none');
 
-    // Meeting UI State
-    const [activeSidebar, setActiveSidebar] = useState(null);
-    const [messages, setMessages] = useState([]);
-    const [chatInput, setChatInput] = useState('');
+  const [chatSection, setChatSection] = useState(false);
+  const [transcriptionSection, setTranscriptionSection] = useState(false);
+  const [taskSection, setTaskSection] = useState(false);
+  
 
-    const {socket, isConnected, emit, on} = useStream("ws://localhost:2000/socket.io")
+  
+  // Refs for Video Elements
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const pinnedVideoRef = useRef<HTMLVideoElement>(null);
+  
+  // Refs for Chat
+  const chatInputRef = useRef<HTMLInputElement>(null);
 
-    const handleSendMessage = () => {
-        if (chatInput.trim()) {
-            setMessages([...messages, { user: 'Me', text: chatInput }]);
-            setChatInput('');
-        }
+  // --- Handlers ---
+
+  const toggleSidebar = (type: SidebarType) => {
+    setActiveSidebar(prev => (prev === type ? 'none' : type));
+  };
+
+  // Helper to calculate Sidebar Width dynamically based on state
+  const getSidebarStyle = (type: SidebarType) => {
+    const isActive = activeSidebar === type;
+    return {
+      width: isActive ? '350px' : '0px',
+      padding: isActive ? undefined : '0px',
+      opacity: isActive ? 1 : 0,
+      border: isActive ? '1px solid #e0e0e0' : 'none'
     };
+  };
 
-    const toggleSidebar = (viewName) => {
-        setActiveSidebar(activeSidebar === viewName ? null : viewName);
-    };
-    
-    return (
-        
-        <div className="meeting-view">
-            <div className="video-container">
-                <div className={`video-grid ${activeSidebar ? 'shrink' : ''}`}>
-                {/* User Box */}
-                <div className="participant-box">
-                    {mediaControl.camera ? (
-                        <video ref={videoRef} autoPlay playsInline muted style={{width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)'}} />
-                    ) : (
-                        <div className="text-white h1">{username.charAt(0) || 'U'}</div>
-                    )}
-                    <div className="name-tag">{username} (You)</div>
-                </div>
-                {/* Remote User Mock */}
-                <div className="participant-box">
-                    <div className="text-white h1">R</div>
-                    <div className="name-tag">Remote User</div>
-                </div>
-                </div>
+  return (
+    <div className="meeting-wrapper">
+      
+        <div id="meetingView" className="w-100 h-100 position-relative">
+          
+          {/* Pinned Video Overlay (Hidden by default, logic needed to toggle) */}
+          {/* <div id="pinnedOverlay" className="d-none">
+            <video ref={pinnedVideoRef} autoPlay playsInline className="pinned-video" muted></video>
+            <button className="btn btn-sm btn-light" style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1000 }}>
+              <i className="bi bi-pin-angle"></i>
+            </button>
+          </div> */}
 
-                {/* SIDEBARS */}
-                {['tasks', 'chat', 'transcription'].map(view => (
-                    <div key={view} className={`sidebar-panel ${activeSidebar === view ? 'active' : ''}`}>
-                    <div className="sidebar-header">
-                        <h5 className="m-0 text-capitalize">{view}</h5>
-                        <button className="btn btn-sm btn-light" onClick={() => setActiveSidebar(null)}><i className="bi bi-x-lg"></i></button>
-                    </div>
-                    <div className="sidebar-content">
-                        {view === 'chat' ? (
-                            <>
-                            <div className="flex-grow-1 mb-2">
-                                {messages.map((msg, idx) => (
-                                <div key={idx} className="mb-2">
-                                    <strong>{msg.user}: </strong><span className="text-break">{msg.text}</span>
-                                </div>
-                                ))}
-                            </div>
-                            <div className="input-group">
-                                <input 
-                                type="text" 
-                                className="form-control rounded-pill" 
-                                placeholder="Type message..." 
-                                value={chatInput}
-                                onChange={(e) => setChatInput(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                />
-                            </div>
-                            </>
-                        ) : <p className="text-muted text-center mt-3">Content for {view}...</p>}
-                    </div>
-                    </div>
-                ))}
+          {/* TASKS SIDEBAR */}
+          <div className="sidebar-panel" style={getSidebarStyle('tasks')}>
+            <div className="sidebar-header">
+              <h5>Assigned Tasks</h5>
+              <button className="btn btn-light px-1 py-0" onClick={() => toggleSidebar('tasks')}>
+                <i className="bi bi-x-lg"></i>
+              </button>
             </div>
-
-            {/* BOTTOM CONTROLS */}
-            <div className="meeting-controls">
-                <button className="btn btn-light d-flex align-items-center gap-2" onClick={() => toggleSidebar('tasks')}>Tasks</button>
-                <button className={`btn ${mediaControl.camera ? 'btn-light' : 'btn-danger'}`} 
-                    onClick={() => {
-                        if(mediaControl.camera) dispatch(turnOffCamera());
-                        else dispatch(turnOnCamera())
-                    }}
-                >
-                <i className={`bi bi-camera-video${mediaControl.camera ? '-fill' : '-off-fill'}`}></i>
-                </button>
-                <button className={`btn ${mediaControl.mic ? 'btn-light' : 'btn-danger'}`} 
-                    onClick={() => {
-                        if(mediaControl.mic) dispatch(turnOffMic());
-                        else dispatch(turnOnMic())
-                    }}
-                >
-                <i className={`bi bi-mic${mediaControl.mic ? '-fill' : '-mute-fill'}`}></i>
-                </button>
-                <button className="btn btn-light"><i className="bi bi-laptop"></i></button>
-                <button className="btn btn-danger" onClick={() => window.location.href = '/'}>
-                <i className="bi bi-telephone-x-fill"></i>
-                </button>
-                <button className="btn btn-light" onClick={() => toggleSidebar('chat')}><i className="bi bi-chat-left"></i></button>
-                <button className="btn btn-light" onClick={() => toggleSidebar('transcription')}><i className="bi bi-badge-cc"></i></button>
+            <div className="split-container">
+              <div id="tasks_list" className="scrollable-list">
+                {/* Task items map here */}
+                <div className="text-muted small text-center mt-4">No tasks yet</div>
+              </div>
             </div>
+          </div>
+
+          {/* MAIN VIDEO AREA */}
+          <div className="video-container">
+            {/* <div className="video-grid cols-2" id="videoGrid">
+              <div className="participant-box">
+                <div className="avatar_placeholder">
+                   <span className="initials-circle">{username.charAt(0).toUpperCase()}</span>
+                </div>
+                <div className="name-tag position-absolute" style={{bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.7)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px'}}>
+                  {username} (You)
+                </div>
+              </div>
+            </div> */}
+
+            <Chat toggleSidebar={toggleSidebar} width={chatSection ? "350px": "0px"}/>
+
+
+
+            {/* TRANSCRIPTION SIDEBAR (Inside Flex Container) */}
+            <div className="sidebar-panel" style={getSidebarStyle('transcription')}>
+              <div className="sidebar-header">
+                <h5>Transcription</h5>
+                <button className="btn btn-light px-1 py-0" onClick={() => toggleSidebar('transcription')}>
+                  <i className="bi bi-x-lg"></i>
+                </button>
+              </div>
+              <div className="split-container">
+                <div className="split-top">
+                  <div className="panel_heading">Live Transcription</div>
+                  <div className="scrollable-list" id="transcription_list"></div>
+                </div>
+                <div className="split-bottom">
+                  <div className="panel_heading">Suggested Questions</div>
+                  <div className="scrollable-list" id="suggested_questions_list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* BOTTOM CONTROLS */}
+
         </div>
         
-        
-        
+        <Controls videoRef={videoRef} setChatSection={setChatSection} setTaskSection={setTaskSection} setTranscriptionSection={setTranscriptionSection}/>
+    </div>
+  );
+};
 
-    )
-}
+export default Meeting;
