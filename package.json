@@ -12,6 +12,7 @@
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
     "@types/react-router-dom": "^5.3.3",
+    "mediasoup-client": "^3.18.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-icons": "^5.5.0",

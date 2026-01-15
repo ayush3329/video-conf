@@ -20,15 +20,18 @@ const Camera = ({videoRef}: {videoRef: React.RefObject<null>}) => {
     } else {
         // 2. TURNING ON: We must request access again
         try {
-        const newStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        const newVideoTrack = newStream.getVideoTracks()[0];
+        const newStream = await navigator.mediaDevices.getUserMedia({ video: true }); //asked browser for only camera access
+        const newVideoTrack = newStream.getVideoTracks()[0]; //extracted the video Track, to append it into exisiting stream, which may contain audio track already
 
         // Add the new video track to our existing stream (so audio keeps working if it's on)
-        if (videoRef.current) {
-            videoRef.current.addTrack(newVideoTrack);
+        
+        const currentStream = videoRef.current.srcObject;
+
+        if (currentStream) {
+            currentStream.addTrack(newVideoTrack);
         } else {
             // If stream was completely dead, re-initialize it
-            videoRef.current = newStream; 
+            videoRef.current.srcObject = newStream; 
         }
 
         dispatch(turnOnCamera());

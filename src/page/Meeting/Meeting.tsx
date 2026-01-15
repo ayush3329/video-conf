@@ -4,6 +4,7 @@ import Controls from '../../Components/Controls/Controls';
 import Chat from '../../Components/Chat/Chat';
 import Transcription from '../../Components/Transcription/Transcription';
 import Tasks from '../../Components/Tasks/Tasks';
+import SFUClient from '../../Components/VideoFrame/VideoFrame';
 
 // Types for Sidebar State
 type SidebarType = 'none' | 'chat' | 'tasks' | 'transcription';
@@ -48,26 +49,17 @@ const Meeting = ({videoRef}: {videoRef: React.RefObject<null>}) => {
         <div id="meetingView" className="w-100 h-100 position-relative">
 
           {/* MAIN VIDEO AREA */}
-          <div className="video-container">
-            {/* <div className="video-grid cols-2" id="videoGrid">
-              <div className="participant-box">
-                <div className="avatar_placeholder">
-                   <span className="initials-circle">{username.charAt(0).toUpperCase()}</span>
-                </div>
-                <div className="name-tag position-absolute" style={{bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.7)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px'}}>
-                  {username} (You)
-                </div>
-              </div>
-            </div> */}
+          <div className="video-container" >
+            <SFUClient videoRef={videoRef} />
 
             <Chat toggleSidebar={toggleSidebar} chatSection={chatSection}/>
             <Transcription toggleSidebar={toggleSidebar} transcriptionSection={transcriptionSection}/>
             <Tasks toggleSidebar={toggleSidebar} taskSection={taskSection}/>
           </div>
 
+          <Controls videoRef={videoRef} setChatSection={setChatSection} setTaskSection={setTaskSection} setTranscriptionSection={setTranscriptionSection}/>
         </div>
         
-        <Controls videoRef={videoRef} setChatSection={setChatSection} setTaskSection={setTaskSection} setTranscriptionSection={setTranscriptionSection}/>
     </div>
   );
 };
