@@ -2,6 +2,8 @@ import React, { useState, useRef } from 'react';
 import './meeting.css'; // Importing the separate CSS file
 import Controls from '../../Components/Controls/Controls';
 import Chat from '../../Components/Chat/Chat';
+import Transcription from '../../Components/Transcription/Transcription';
+import Tasks from '../../Components/Tasks/Tasks';
 
 // Types for Sidebar State
 type SidebarType = 'none' | 'chat' | 'tasks' | 'transcription';
@@ -44,30 +46,6 @@ const Meeting = ({videoRef}: {videoRef: React.RefObject<null>}) => {
     <div className="meeting-wrapper">
       
         <div id="meetingView" className="w-100 h-100 position-relative">
-          
-          {/* Pinned Video Overlay (Hidden by default, logic needed to toggle) */}
-          {/* <div id="pinnedOverlay" className="d-none">
-            <video ref={pinnedVideoRef} autoPlay playsInline className="pinned-video" muted></video>
-            <button className="btn btn-sm btn-light" style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1000 }}>
-              <i className="bi bi-pin-angle"></i>
-            </button>
-          </div> */}
-
-          {/* TASKS SIDEBAR */}
-          <div className="sidebar-panel" style={getSidebarStyle('tasks')}>
-            <div className="sidebar-header">
-              <h5>Assigned Tasks</h5>
-              <button className="btn btn-light px-1 py-0" onClick={() => toggleSidebar('tasks')}>
-                <i className="bi bi-x-lg"></i>
-              </button>
-            </div>
-            <div className="split-container">
-              <div id="tasks_list" className="scrollable-list">
-                {/* Task items map here */}
-                <div className="text-muted small text-center mt-4">No tasks yet</div>
-              </div>
-            </div>
-          </div>
 
           {/* MAIN VIDEO AREA */}
           <div className="video-container">
@@ -82,32 +60,10 @@ const Meeting = ({videoRef}: {videoRef: React.RefObject<null>}) => {
               </div>
             </div> */}
 
-            <Chat toggleSidebar={toggleSidebar} width={chatSection ? "350px": "0px"}/>
-
-
-
-            {/* TRANSCRIPTION SIDEBAR (Inside Flex Container) */}
-            <div className="sidebar-panel" style={getSidebarStyle('transcription')}>
-              <div className="sidebar-header">
-                <h5>Transcription</h5>
-                <button className="btn btn-light px-1 py-0" onClick={() => toggleSidebar('transcription')}>
-                  <i className="bi bi-x-lg"></i>
-                </button>
-              </div>
-              <div className="split-container">
-                <div className="split-top">
-                  <div className="panel_heading">Live Transcription</div>
-                  <div className="scrollable-list" id="transcription_list"></div>
-                </div>
-                <div className="split-bottom">
-                  <div className="panel_heading">Suggested Questions</div>
-                  <div className="scrollable-list" id="suggested_questions_list"></div>
-                </div>
-              </div>
-            </div>
+            <Chat toggleSidebar={toggleSidebar} chatSection={chatSection}/>
+            <Transcription toggleSidebar={toggleSidebar} transcriptionSection={transcriptionSection}/>
+            <Tasks toggleSidebar={toggleSidebar} taskSection={taskSection}/>
           </div>
-
-          {/* BOTTOM CONTROLS */}
 
         </div>
         
