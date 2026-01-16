@@ -8,7 +8,7 @@ import { useSelector } from "react-redux";
 export default function SFUClient({videoRef}: {videoRef: any;}) {
   const mediaControl: mediaState = useSelector((state: RootState)=> state.media);
   const socketRef = useRef<Socket | null>(null); //holds the websocket connection
-  const deviceRef = useRef(new Device());
+  const deviceRef = useRef(new Device()); //holds the Device object 
   const sendTransportRef = useRef(null);
   const recvTransportRef = useRef(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -54,7 +54,6 @@ export default function SFUClient({videoRef}: {videoRef: any;}) {
   };
 
   const createRecvTransport = async () => {
-    const data: any = await request("createWebRtcTransport", { sender: false });
     if (data.error) throw new Error(data.error);
 
     const transport = deviceRef.current.createRecvTransport(data.params);
@@ -73,10 +72,33 @@ export default function SFUClient({videoRef}: {videoRef: any;}) {
   const init = async () => {
     try {
       const routerRtpCapabilities = await request("getRouterRtpCapabilities");
-      console.log("routerRtpCapabilities ",routerRtpCapabilities);
 
       if (!deviceRef.current.loaded) {
+        
+        // here we are sending server's rtp capabilities to the mediasoup (Device Object) and then mediasoup internally 
+        // communicate with browser and chooses one common codec which both server and client understand.
         await deviceRef.current.load({ routerRtpCapabilities: routerRtpCapabilities as any,});
+        {
+          /*
+
+          console.log("deviceRef ", deviceRef.current.handlerName)
+            handlerName -> it returns the name of the browser (like chrome111 etc)
+
+          console.log("rtpCapabilities ", deviceRef.current.rtpCapabilities)
+            rtpCapabilities -> it returns and object ( {codes: [], headers: []} ) which stores the common codec and header 
+            browser and server have 
+
+          console.log("canProduce ", deviceRef.current.canProduce("audio")) 
+            canProduce("audio")-> it return true, if the audio codec of both server and browser matches
+
+
+          console.log("canProduce ", deviceRef.current.canProduce("video"))
+            canProduce("video")-> it return true, if the video codec of both server and browser matches
+
+          */
+        }
+        
+        
       }
 
       await createSendTransport();
@@ -116,6 +138,23 @@ export default function SFUClient({videoRef}: {videoRef: any;}) {
     }
   };  
 
+  const startBroadcast = async () => {
+    console.log("startBroadcast");
+    console.log("videoRef.current ", videoRef.current);
+    console.log("videoRef.current.srcObject ", videoRef.current.srcObject);
+    if (!videoRef.current || !videoRef.current.srcObject) return;
+
+    const stream = videoRef.current.srcObject as MediaStream;
+    const track = stream.getVideoTracks()[0];
+
+    try {
+      await sendTransportRef.current.produce({ track });
+      console.log("Publishing video...");
+    } catch (err) {
+      console.error("Publishing failed", err);
+    }
+  };
+
 
   useEffect(() => {
     // 1. Initialize Socket ONLY ONCE
@@ -137,10 +176,6 @@ export default function SFUClient({videoRef}: {videoRef: any;}) {
 
   
 
-
-
-
-
   // Watch for Toggle + Readiness
   useEffect(() => {
     console.log(mediaControl.camera, " ", isTransportReady);
@@ -149,22 +184,7 @@ export default function SFUClient({videoRef}: {videoRef: any;}) {
     }
   }, [mediaControl.camera, isTransportReady]);
 
-  const startBroadcast = async () => {
-    console.log("startBroadcast");
-    console.log("videoRef.current ", videoRef.current);
-    console.log("videoRef.current.srcObject ", videoRef.current.srcObject);
-    if (!videoRef.current || !videoRef.current.srcObject) return;
 
-    const stream = videoRef.current.srcObject as MediaStream;
-    const track = stream.getVideoTracks()[0];
-
-    try {
-      await sendTransportRef.current.produce({ track });
-      console.log("Publishing video...");
-    } catch (err) {
-      console.error("Publishing failed", err);
-    }
-  };
 
   return (
     <div
