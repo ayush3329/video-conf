@@ -1,0 +1,16 @@
+
+1. rtpCapabilities-> This include auido/video codecs and headerExtension
+
+2. init-> This functions is used to fetch server's rtc capabilities so that it can checks with 
+    browser's rtpCapabilities.
+    Once client receives server's rtpCapabilities and checks with browser's rtpCapabilities. 
+    It then select one common codecs for video Calling
+    
+    After rtpCapabilities, This function creates send and receive Transport with server, so that
+    it can send stream to server using sendTransport and receive streams from server using
+    receiveTransport
+
+
+createSendTransport-> This function asks server to create sendTransport so client can upload
+    stream to server. Once server receives this request it 
+

@@ -5,17 +5,19 @@ import { MdOutlineLaptop } from 'react-icons/md';
 import { BsFillTelephoneXFill } from 'react-icons/bs';
 import { CiChat1 } from 'react-icons/ci';
 import { CgCaptions } from 'react-icons/cg';
+import { useNavigate } from 'react-router-dom';
 
 
 interface ControlsProps {
   setChatSection: React.Dispatch<React.SetStateAction<boolean>>,
   setTranscriptionSection: React.Dispatch<React.SetStateAction<boolean>>,
   setTaskSection: React.Dispatch<React.SetStateAction<boolean>>
-  videoRef: React.RefObject<null>
+  videoRef: React.RefObject<HTMLVideoElement>,
+  socketRef: any
 }
 
-const Controls = ({videoRef, setChatSection, setTaskSection, setTranscriptionSection}: ControlsProps) => {
-    console.log("Control Component");
+const Controls = ({videoRef, setChatSection, setTaskSection, setTranscriptionSection, socketRef}: ControlsProps) => {
+    const nav = useNavigate();
 
     return (
         <div className="meeting-controls">
@@ -34,7 +36,10 @@ const Controls = ({videoRef, setChatSection, setTaskSection, setTranscriptionSec
                 <MdOutlineLaptop size={24} />
             </div> {/* Screen Share */}
 
-            <div  className="control-btn" style={{backgroundColor: "#ef476f"}}  onClick={() => console.log("Call Disconnect")}>
+            <div  className="control-btn" style={{backgroundColor: "#ef476f"}}  onClick={() => {
+                socketRef.current?.disconnect();
+                nav("/room")
+            }}>
                 <BsFillTelephoneXFill  size={20} color="white"/>
             </div> {/* Disconnect */}
             

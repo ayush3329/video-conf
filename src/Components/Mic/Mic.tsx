@@ -24,11 +24,14 @@ const Mic = ({videoRef}: {videoRef: React.RefObject<null>}) => {
             try {
             const newStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const newAudioTrack = newStream.getAudioTracks()[0];
+            
+            const currentStream = videoRef.current.srcObject;
 
-            if (videoRef.current){
-                videoRef.current.addTrack(newAudioTrack);
+
+            if (currentStream){
+                currentStream.addTrack(newAudioTrack);
             } else{
-                videoRef.current = newStream;
+                videoRef.current.srcObject = newStream;
             }
 
             dispatch(turnOnMic());

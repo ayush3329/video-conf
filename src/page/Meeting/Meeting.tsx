@@ -1,47 +1,41 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import './meeting.css'; // Importing the separate CSS file
 import Controls from '../../Components/Controls/Controls';
 import Chat from '../../Components/Chat/Chat';
 import Transcription from '../../Components/Transcription/Transcription';
 import Tasks from '../../Components/Tasks/Tasks';
-import SFUClient from '../../Components/VideoFrame/VideoFrame';
+import SFUClient from '../../Components/SFUClient/SFUClient';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Socket } from 'socket.io-client';
 
 // Types for Sidebar State
 type SidebarType = 'none' | 'chat' | 'tasks' | 'transcription';
 
 const Meeting = ({videoRef}: {videoRef: React.RefObject<null>}) => {
+
+  const nav = useNavigate();
+  const [searchParams] = useSearchParams();
+  const roomId = searchParams.get("roomid") || null;
+  const username = searchParams.get("username") || null;
+
+  const socketRef = useRef<Socket | null>(null); // holds the websocket connection
+  
+
+
   // State Management
-  const [activeSidebar, setActiveSidebar] = useState<SidebarType>('none');
+  const [activeSidebar, setActiveSidebar] = useState<SidebarType>('none')
 
   const [chatSection, setChatSection] = useState(false);
   const [transcriptionSection, setTranscriptionSection] = useState(false);
   const [taskSection, setTaskSection] = useState(false);
-  
-
-  
-  // Refs for Video Elements
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const pinnedVideoRef = useRef<HTMLVideoElement>(null);
-  
-  // Refs for Chat
-  const chatInputRef = useRef<HTMLInputElement>(null);
-
-  // --- Handlers ---
 
   const toggleSidebar = (type: SidebarType) => {
     setActiveSidebar(prev => (prev === type ? 'none' : type));
   };
 
-  // Helper to calculate Sidebar Width dynamically based on state
-  const getSidebarStyle = (type: SidebarType) => {
-    const isActive = activeSidebar === type;
-    return {
-      width: isActive ? '350px' : '0px',
-      padding: isActive ? undefined : '0px',
-      opacity: isActive ? 1 : 0,
-      border: isActive ? '1px solid #e0e0e0' : 'none'
-    };
-  };
+  useEffect(()=>{
+    if(!roomId || !username) nav("/room")
+  }, [])
 
   return (
     <div className="meeting-wrapper">
@@ -50,14 +44,13 @@ const Meeting = ({videoRef}: {videoRef: React.RefObject<null>}) => {
 
           {/* MAIN VIDEO AREA */}
           <div className="video-container" >
-            <SFUClient videoRef={videoRef} />
-
+            <SFUClient videoRef={videoRef} roomId={roomId} username={username} socketRef={socketRef}/>
             <Chat toggleSidebar={toggleSidebar} chatSection={chatSection}/>
             <Transcription toggleSidebar={toggleSidebar} transcriptionSection={transcriptionSection}/>
             <Tasks toggleSidebar={toggleSidebar} taskSection={taskSection}/>
           </div>
 
-          <Controls videoRef={videoRef} setChatSection={setChatSection} setTaskSection={setTaskSection} setTranscriptionSection={setTranscriptionSection}/>
+          <Controls socketRef={socketRef} videoRef={videoRef} setChatSection={setChatSection} setTaskSection={setTaskSection} setTranscriptionSection={setTranscriptionSection}/>
         </div>
         
     </div>

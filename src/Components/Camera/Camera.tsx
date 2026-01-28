@@ -11,10 +11,10 @@ const Camera = ({videoRef}: {videoRef: React.RefObject<null>}) => {
     const toggleCamera = async () => {
     if (mediaControl.camera) {
         // 1. TURNING OFF: Find video track and stop it (Releases hardware light)
-        const tracks = videoRef.current.getVideoTracks();
+        const tracks = videoRef.current.srcObject.getVideoTracks(); 
         tracks.forEach(track => {
         track.stop(); // Stops the hardware
-        videoRef.current.removeTrack(track); // Removes from stream object
+        videoRef.current.srcObject.removeTrack(track); // Removes from stream object
         });
         dispatch(turnOffCamera())
     } else {
@@ -30,7 +30,6 @@ const Camera = ({videoRef}: {videoRef: React.RefObject<null>}) => {
         if (currentStream) {
             currentStream.addTrack(newVideoTrack);
         } else {
-            // If stream was completely dead, re-initialize it
             videoRef.current.srcObject = newStream; 
         }
 
