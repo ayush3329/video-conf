@@ -12,46 +12,47 @@ interface ControlsProps {
   setChatSection: React.Dispatch<React.SetStateAction<boolean>>,
   setTranscriptionSection: React.Dispatch<React.SetStateAction<boolean>>,
   setTaskSection: React.Dispatch<React.SetStateAction<boolean>>
-  videoRef: React.RefObject<HTMLVideoElement>,
-  socketRef: any
+  videoRef: React.RefObject<HTMLVideoElement|null>,
+  socketRef: any,
+  roomId: string
 }
 
-const Controls = ({videoRef, setChatSection, setTaskSection, setTranscriptionSection, socketRef}: ControlsProps) => {
+const Controls = ({roomId, videoRef, setChatSection, setTaskSection, setTranscriptionSection, socketRef}: ControlsProps) => {
     const nav = useNavigate();
 
     return (
-        <div className="meeting-controls">
 
-            <div  className="control-btn" style={{width: "80px"}}
-              onClick={() => setTaskSection((prev=> !prev))}
-            >
-              Tasks
-            </div> {/* Task */}
+      <div className='footer'>
+        <div className='controls-left'><span>{roomId}</span></div>
+        <div className='controls-center'>
 
-            <Camera videoRef={videoRef}/> {/* Camera */}
+          <Mic videoRef={videoRef} /> {/* Mic */}
+          <Camera videoRef={videoRef}/> {/* Camera */}
+          
+          <div  className="control-btn"  onClick={()=> console.log("Share screen")}>
+            <MdOutlineLaptop size={24} />
+          </div> 
 
-            <Mic videoRef={videoRef} /> {/* Mic */}
+          <div  className="control-btn" style={{backgroundColor: "#ef476f"}}  onClick={() => {
+              socketRef.current?.disconnect();
+              nav("/room")
+          }}>
+              <BsFillTelephoneXFill  size={20} color="white"/>
+          </div> {/* Disconnect */}
 
-            <div  className="control-btn"  onClick={()=> console.log("Share screen")}>
-                <MdOutlineLaptop size={24} />
-            </div> {/* Screen Share */}
+          <div  className="control-btn"  onClick={() => setChatSection((prev=> !prev))}>
+            <CiChat1 size={20}/>
+          </div> {/* Chat */}
 
-            <div  className="control-btn" style={{backgroundColor: "#ef476f"}}  onClick={() => {
-                socketRef.current?.disconnect();
-                nav("/room")
-            }}>
-                <BsFillTelephoneXFill  size={20} color="white"/>
-            </div> {/* Disconnect */}
-            
-            <div  className="control-btn"  onClick={() => setChatSection((prev=> !prev))}>
-              <CiChat1 size={20}/>
-            </div> {/* Chat */}
+          <div  className="control-btn"  onClick={() => setTranscriptionSection((prev=> !prev))}>
+            <CgCaptions size={20}/>
+          </div> {/* Transcription */}
+  
 
-            <div  className="control-btn"  onClick={() => setTranscriptionSection((prev=> !prev))}>
-              <CgCaptions size={20}/>
-            </div> {/* Transcription */}
-            
+
         </div>
+        <div className='controls-right'><span>💬</span><span>🔒</span></div>
+      </div>
     );
 }
 

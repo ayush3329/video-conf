@@ -95,29 +95,7 @@
     z-index: 10; /* Sits above video/placeholder */
 }
 
-.control-btn {
-    background: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-sizing: border-box; 
-    border-radius: 8px;
-    width: 45px;
-    height: 45px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: black;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
 
-.control-btn:hover {
-    background: rgba(240, 235, 235, 0.733);
-}
-
-.control-btn.active-red {
-    background-color: #ea4335;
-    border-color: #ea4335;
-}
 
 /* 3. Inputs Section (Bottom Half) */
 .prejoin-inputs-container {
