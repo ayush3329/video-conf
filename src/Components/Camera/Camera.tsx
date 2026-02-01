@@ -3,43 +3,48 @@ import { RootState, AppDispatch } from '../../redux/states/store';
 import { mediaState } from '../../types/redux-state-types';
 import { useDispatch, useSelector } from 'react-redux';
 import { turnOffCamera, turnOnCamera } from '../../redux/states/media-controls/mediaControlSlice';
+import { useEffect } from 'react';
 
-const Camera = ({videoRef}: {videoRef: React.RefObject<null>}) => {
+const Camera = ({videoRef, streamRef}: {videoRef: React.RefObject<HTMLVideoElement | null>, streamRef: React.RefObject<MediaStream>}) => {
     const dispatch = useDispatch<AppDispatch>()
     const mediaControl: mediaState = useSelector((state: RootState)=> state.media);
-    
-    const toggleCamera = async () => {
-    if (mediaControl.camera) {
-        // 1. TURNING OFF: Find video track and stop it (Releases hardware light)
-        const tracks = videoRef.current.srcObject.getVideoTracks(); 
-        tracks.forEach(track => {
-        track.stop(); // Stops the hardware
-        videoRef.current.srcObject.removeTrack(track); // Removes from stream object
-        });
-        dispatch(turnOffCamera())
-    } else {
-        // 2. TURNING ON: We must request access again
-        try {
-        const newStream = await navigator.mediaDevices.getUserMedia({ video: true }); //asked browser for only camera access
-        const newVideoTrack = newStream.getVideoTracks()[0]; //extracted the video Track, to append it into exisiting stream, which may contain audio track already
-
-        // Add the new video track to our existing stream (so audio keeps working if it's on)
-        
-        const currentStream = videoRef.current.srcObject;
-
-        if (currentStream) {
-            currentStream.addTrack(newVideoTrack);
-        } else {
-            videoRef.current.srcObject = newStream; 
-        }
-
-        dispatch(turnOnCamera());
-        } catch (err) {
-        console.error("Error restarting video:", err);
+ 
+    const ensureStreamLinked = ()=>{
+        if(videoRef.current && videoRef.current.srcObject !== streamRef.current){
+            videoRef.current.srcObject = streamRef.current;
         }
     }
-    };
     
+    const toggleCamera = async()=>{
+      
+        if(mediaControl.camera){
+            const videoTrack = streamRef.current.getVideoTracks();
+            videoTrack.forEach((track)=>{
+                track.stop();
+                streamRef.current.removeTrack(track);
+                
+            })
+            dispatch(turnOffCamera());
+        } else{
+            try{
+                const newStream = await navigator.mediaDevices.getUserMedia({video: true});
+                const newTrack = newStream.getVideoTracks()[0];
+                
+                streamRef.current.addTrack(newTrack);
+                dispatch(turnOnCamera());
+
+            } catch(err){
+                console.error("Camera access denied", err);
+            }
+        }
+        
+    }
+
+    useEffect(()=>{
+        if(mediaControl.camera) ensureStreamLinked();
+    }, [mediaControl.camera])
+
+
     return (
         <div  className="control-btn"  onClick={toggleCamera}>
             {mediaControl.camera ? <CiVideoOn size={24} /> : <CiVideoOff size={24} />}

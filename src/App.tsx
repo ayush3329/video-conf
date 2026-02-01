@@ -11,6 +11,7 @@ import { useRef } from 'react';
 
 function App() {
   const videoRef = useRef(null);  
+  const streamRef = useRef(new MediaStream());
   return (
     <Routes>
       {/* Auth Routes */}
@@ -20,8 +21,8 @@ function App() {
 
       {/* App Routes */}
       <Route path="/" element={<LoginPage />} />
-      <Route path="/room" element={<Room videoRef={videoRef}/>} />
-      <Route path="/meeting" element={<Meeting videoRef={videoRef}/>} />
+      <Route path="/room" element={<Room streamRef={streamRef} videoRef={videoRef}/>} />
+      <Route path="/meeting" element={<Meeting videoRef={videoRef} streamRef={streamRef}/>} />
 
       {/* 404 Handling */}
       <Route path="/404" element={<NotFoundPage />} />

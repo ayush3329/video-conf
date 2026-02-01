@@ -11,7 +11,7 @@ import MeetingPannel from '../../Components/MeetingPannel/MeetingPannel';
 // Types for Sidebar State
 type SidebarType = 'none' | 'chat' | 'tasks' | 'transcription';
 
-const Meeting = ({videoRef}: {videoRef: React.RefObject<null>}) => {
+const Meeting = ({videoRef, streamRef}: {videoRef: React.RefObject<null>, streamRef: React.RefObject<MediaStream>}) => {
 
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
@@ -46,6 +46,7 @@ const Meeting = ({videoRef}: {videoRef: React.RefObject<null>}) => {
           roomId={roomId} 
           username={username} 
           socketRef={socketRef}
+          streamRef={streamRef}
       />
       
       <Controls 
@@ -54,7 +55,8 @@ const Meeting = ({videoRef}: {videoRef: React.RefObject<null>}) => {
           setChatSection={setChatSection} 
           setTaskSection={setTaskSection} 
           setTranscriptionSection={setTranscriptionSection}
-          roomId={roomId}
+          roomId={roomId || ""}
+          streamRef={streamRef}
       />
 
         {/* 

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { RemotePeer } from "../../../types/MeetingPannelType";
 
 interface RemoteUsersVideoTileProps {
   stream: MediaStream | null,
@@ -7,11 +8,19 @@ interface RemoteUsersVideoTileProps {
   height: number,
   width: number,
   avatarColor: string, 
-  videoPaused: boolean
+  videoPaused: boolean,
+  user: RemotePeer
 }
 
-const RemoteUsersVideoTile = ({videoPaused, avatarColor, stream, audioStream, username, height, width }: RemoteUsersVideoTileProps) => {
-    
+const RemoteUsersVideoTile = ({user, videoPaused, avatarColor, stream, audioStream, username, height, width }: RemoteUsersVideoTileProps) => {
+    console.log("video consumer ", user.videoConsumer)
+    console.log("video videoStream", user.videoStream)
+    console.log("video videoPaused", user.videoPaused)
+    console.log("------------------------------------")
+    console.log("audio consumer ", user.audioConsumer)
+    console.log("audio audioStream ", user.audioStream)
+    console.log("audio audioPaused ", user.audioPaused)
+    console.log("\n\n\n")
     const videoRef = useRef<HTMLVideoElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
 

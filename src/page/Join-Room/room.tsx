@@ -6,10 +6,9 @@ import { useNavigate } from 'react-router-dom';
 import { AppDispatch, RootState } from '../../redux/states/store';
 import { mediaState } from '../../types/redux-state-types';
 import { useDispatch, useSelector } from 'react-redux';
-import { turnOnCameraAndMic, turnOnCamera, turnOnMic, turnOffCamera, turnOffMic } from "../../redux/states/media-controls/mediaControlSlice"
+import { turnOnCamera, turnOnMic, turnOffCamera, turnOffMic } from "../../redux/states/media-controls/mediaControlSlice"
 
-const Room = ({videoRef}: {videoRef: React.RefObject<null>}) => {
-  
+const Room = ({videoRef, streamRef}: {videoRef: React.RefObject<null>, streamRef: React.RefObject<MediaStream>}) => {
   const nav = useNavigate();
 
   // --- STATE ---
@@ -20,69 +19,62 @@ const Room = ({videoRef}: {videoRef: React.RefObject<null>}) => {
   const dispatch = useDispatch<AppDispatch>()
   const mediaControl: mediaState = useSelector((state: RootState)=> state.media)
 
-  // Video data
-  const streamRef = useRef(null);
-  const [error, setError] = useState<string|null>(null);
-
-
-  const toggleCamera = async () => {
-    if (mediaControl.camera) {
-      // 1. TURNING OFF: Find video track and stop it (Releases hardware light)
-      const tracks = streamRef.current.getVideoTracks();
-      tracks.forEach(track => {
-        track.stop(); // Stops the hardware
-        streamRef.current.removeTrack(track); // Removes from stream object
-      });
-      dispatch(turnOffCamera())
-    } else {
-      // 2. TURNING ON: We must request access again
-      try {
-        const newStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        const newVideoTrack = newStream.getVideoTracks()[0];
-
-        // Add the new video track to our existing stream (so audio keeps working if it's on)
-        if (streamRef.current) {
-          streamRef.current.addTrack(newVideoTrack);
-        } else {
-          // If stream was completely dead, re-initialize it
-          streamRef.current = newStream; 
-        }
-
-        dispatch(turnOnCamera());
-      } catch (err) {
-        console.error("Error restarting video:", err);
-        setError("Could not restart camera.");
-      }
+  const ensureStreamLinked = ()=>{
+    console.log(videoRef.current)
+    console.log(videoRef.current.srcObject)
+    console.log(streamRef.current)
+    if(videoRef.current && videoRef.current.srcObject !== streamRef.current){
+        videoRef.current.srcObject = streamRef.current;
     }
-  };
-
-  const toggleMic = async () => {
-    if (mediaControl.mic) {
-      // 1. TURNING OFF: Stop audio track (Releases microphone)
-      const tracks = streamRef.current.getAudioTracks();
-      tracks.forEach(track => {
-        track.stop(); 
-        streamRef.current.removeTrack(track);
-      });
-      dispatch(turnOffMic());
-    } else {
-      // 2. TURNING ON: Request audio access again
-      try {
-        const newStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const newAudioTrack = newStream.getAudioTracks()[0];
-
-        if (streamRef.current) {
-          streamRef.current.addTrack(newAudioTrack);
-        } else {
-          streamRef.current = newStream;
+  }
+  
+    
+  const toggleCamera = async()=>{
+    if(mediaControl.camera){
+        const videoTrack = streamRef.current.getVideoTracks();
+        videoTrack.forEach((track)=>{
+            track.stop();
+            streamRef.current.removeTrack(track);
+        })
+        dispatch(turnOffCamera());
+    } else{
+        try{
+            const newStream = await navigator.mediaDevices.getUserMedia({video: true});
+            const newTrack = newStream.getVideoTracks()[0];
+            
+            streamRef.current.addTrack(newTrack);
+            ensureStreamLinked();
+            dispatch(turnOnCamera());
+        } catch(err){
+            console.error("Camera access denied", err);
         }
-
-        dispatch(turnOnMic());
-      } catch (err) {
-        console.error("Error restarting audio:", err);
-      }
     }
-  };
+  }
+  
+  const toggleMic = async()=>{
+    
+      if(mediaControl.mic){
+          const audioTrack = streamRef.current.getAudioTracks();
+          audioTrack.forEach((track)=>{
+              track.stop();
+              streamRef.current.removeTrack(track);
+          })
+          dispatch(turnOffMic());
+      } else{
+          try{
+              const newStream = await navigator.mediaDevices.getUserMedia({audio: true});
+              const newTrack = newStream.getAudioTracks()[0];
+              
+              streamRef.current.addTrack(newTrack);
+              ensureStreamLinked();
+              dispatch(turnOnMic());
+
+          } catch(err){
+              console.error("Mic access denied", err);
+          }
+      }
+      
+  }
 
   const handleJoin = () => {
     if (!username || !roomName) {
@@ -93,38 +85,17 @@ const Room = ({videoRef}: {videoRef: React.RefObject<null>}) => {
     }
   };
 
-  
-  useEffect(() => {
-    const setupStream = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true
-        });
-          
-        streamRef.current = stream;  
-        dispatch(turnOnCameraAndMic())
-        
-      } catch (err) {
-        console.error("Error accessing camera and mic:", err);
-        setError("Camera access denied.");
-      }
-    };
-    setupStream();
 
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, []);
-
-  
-  useEffect(() => {
-    if (mediaControl.camera && videoRef.current && streamRef.current) {
+  useEffect(()=>{
+    if (videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current;
     }
-  }, [mediaControl.camera]);
+    return()=>{
+      videoRef.current = null;
+    }
+  }, [])
+
+
 
 
 
@@ -150,13 +121,16 @@ const Room = ({videoRef}: {videoRef: React.RefObject<null>}) => {
             <div className="prejoin-card-body">
               
               <div className="video-preview-frame">
-                {mediaControl.camera ? (
-                  <video ref={videoRef} autoPlay playsInline muted />
-                ) : (
+                
+              <video ref={videoRef} muted={true} autoPlay playsInline className="video-feed" 
+                style={{display: `${mediaControl.camera ? "block" : "none"}`}}/>
+
+                {
+                  !mediaControl.camera &&
                   <div className="camera-off-placeholder">
                       <span>Camera is off</span>
                   </div>
-                )}
+                }
 
                 <div className="overlay-controls">
                   <div  className="control-btn"  onClick={toggleCamera}>

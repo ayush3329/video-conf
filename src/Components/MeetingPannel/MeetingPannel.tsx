@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Device } from "mediasoup-client";
-import io, { Socket } from "socket.io-client";
+import io from "socket.io-client";
 import { AppDispatch, RootState } from "../../redux/states/store";
 import { mediaState } from "../../types/redux-state-types";
 import { useDispatch, useSelector } from "react-redux";
@@ -8,33 +8,11 @@ import { turnOffCamera, turnOffMic } from '../../redux/states/media-controls/med
 import HostVideoTile from "../VideoTile/HostVideoTile/HostVideoTile";
 import RemoteUsersVideoTile from "../VideoTile/RemoteUsersVideoTile/RemoteUsersVideoTile";
 import {getUserColor} from "../../utility/utility"
-
-interface SFUInterface {
-  videoRef: React.RefObject<HTMLVideoElement|null>;
-  roomId: string | null;
-  username: string | null;
-  socketRef: React.MutableRefObject<Socket | null>;
-}
-
-// Data structure for a remote user
-interface RemotePeer {
-
-  socketId: string;
-  username: string;
-  
-  videoPaused: boolean;
-  audioPaused: boolean;
-
-  videoStream: MediaStream | null;
-  audioStream: MediaStream | null;
-
-  videoConsumer: any | null; // Mediasoup consumer object
-  audioConsumer: any | null; // Mediasoup consumer object
-  
-}
+import { RemotePeer, SFUInterface } from "../../types/MeetingPannelType";
 
 
-export default function MeetingPannel({ videoRef, roomId, username, socketRef }: SFUInterface) {
+
+export default function MeetingPannel({streamRef, videoRef, roomId, username, socketRef }: SFUInterface) {
 
   const dispatch = useDispatch<AppDispatch>();
   const mediaControl: mediaState = useSelector((state: RootState) => state.media);
@@ -43,6 +21,7 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
   const [tileSize, setTileSize] = useState({ width: 909, height: 511.3125 });
   const [remoteUsers, setRemoteUsers] = useState<RemotePeer[]>([]);
   const [isTransportReady, setIsTransportReady] = useState(false);
+  const [isConnectionReady, setIsConnectionReady] = useState(false);
 
   //Refs
   const deviceRef = useRef(new Device()); //Holds mediasoup Device Object (very important for entire video Calling)
@@ -90,12 +69,16 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
     });
   };
 
-  
-  const startVideoBroadcast = async () => {
-    if (!videoRef.current?.srcObject || !sendTransportRef.current) return;
+  const ensureStreamLink = ()=>{
+    if(videoRef.current && videoRef.current.srcObject !== streamRef.current){
+      videoRef.current.srcObject = streamRef.current
+    }
+  }
 
-    const stream = videoRef.current.srcObject as MediaStream;
-    const videoTrack = stream.getVideoTracks()[0];
+  const startVideoBroadcast = async () => {
+    if (!streamRef.current || !sendTransportRef.current) return;
+
+    const videoTrack = streamRef.current.getVideoTracks()[0];
     if (!videoTrack) return;
 
     // IF PRODUCER EXISTS: Don't just resume, REPLACE the track
@@ -107,31 +90,38 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
         
         // Now resume the SFU transmission
         await videoProducerRef.current.resume();
-        emit("resume-stream", { kind: "video" });
+        await emit("resume-stream", { kind: "video" });
         return;
     }
 
-    // FIRST TIME PRODUCING:
     try {
       const videoProducer = await sendTransportRef.current.produce({ 
         track: videoTrack,
         appData: { kind: "video" }
       });
       videoProducerRef.current = videoProducer;
-      // ... rest of your existing logic
     } catch (err) {
       console.error("Failed to publish video", err);
     }
   };
 
   const startAudioBroadcast = async () => {
-    if (!videoRef.current?.srcObject || !sendTransportRef.current) return;
-    if (audioProducerRef.current && !audioProducerRef.current.closed) return;
-
-    const stream = videoRef.current.srcObject as MediaStream;
-    const audioTrack = stream.getAudioTracks()[0];
+    
+    if (!streamRef.current || !sendTransportRef.current) return;
+    
+    const audioTrack = streamRef.current.getAudioTracks()[0];
     if (!audioTrack) return;
-
+    
+    if (audioProducerRef.current && !audioProducerRef.current.closed){
+      // Resuming audio stream after pausing
+      console.log("Replacing audio track on existing producer...");
+       await audioProducerRef.current.replaceTrack({ track: audioTrack });
+       await audioProducerRef.current.resume();
+       await emit("resume-stream", { kind: "audio" });
+       return
+    } 
+    console.log("audiotrack ", audioTrack);
+    // Fresh audio stream. user stating their mic for first time
     try {
       const producer = await sendTransportRef.current.produce({ 
         track: audioTrack,
@@ -144,18 +134,22 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
   };
   
   const stopHardwareTrack = (kind: 'video' | 'audio') => {
-    const stream = videoRef.current?.srcObject as MediaStream;
+    const stream = streamRef.current as MediaStream;
     if (!stream) return;
     const tracks = kind === 'video' ? stream.getVideoTracks() : stream.getAudioTracks();
     tracks.forEach(track => {
         track.stop();
         stream.removeTrack(track); 
     });
+    if(videoRef.current && videoRef.current.srcObject !== streamRef.current){
+      videoRef.current.srcObject = streamRef.current
+    }
   };
 
   const handleTurnOffCamera = async () => {
     if (videoProducerRef.current) {
       await videoProducerRef.current.pause();
+      stopHardwareTrack("video")
       await emit("pause-producer", { kind: "video" });
     }    
     // stopHardwareTrack('video');
@@ -172,7 +166,6 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
     stopHardwareTrack('audio');
     dispatch(turnOffMic());
   };
-
 
 
   // Handle audio/video stream pausing of Remote users
@@ -224,12 +217,14 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
     // This will create a desired producer on the server and connect it with client's 
     // audioProducer/videProducer/screenProdcuer
     transport.on("connect", ({ dtlsParameters }, callback, errback) => {
+      console.log("Connect Fired");
       emit("producer-transport-connect", { dtlsParameters, transportId: transport.id })
         .then(callback).catch(errback);
     });
 
     // 4. Once client starts producing media, "produce" event will fire
     transport.on("produce", ({ rtpParameters, appData }, callback, errback) => {
+      console.log("Produce Fired");
       emit("transport-produce", { kind: appData.kind, rtpParameters, transportId: transport.id })
         .then(({ id }: any) => callback({ id }))
         .catch(errback);
@@ -261,14 +256,14 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
 
       await createProduceTransport();
       await createConsumeTransport();
+
       setIsTransportReady(true);
 
-      // Get existing producers
       const existingProducers: any = await emit("getProducers", { roomId });
-      // Loop through and consume them
+      // Get existing producers
       // NOTE: Your server should return { producerId, socketId, kind }
       for (const producerData of existingProducers) {
-        await consumeStream(producerData, socketRef.current?.id, producerData.kind);
+        await consumeStream(producerData.producerId, producerData.socketId, producerData.username, producerData.kind);
       }
     } catch (error) {
       console.error("Init failed:", error);
@@ -276,15 +271,14 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
   };
 
   
-  // --- CORE: Consume Logic ---
-  const consumeStream = async (producerId: string, socketId: string, kind: string) => {
+  const consumeStream = async (producerId: string, socketId: string, username: string, kind: string) => {
     const { rtpCapabilities } = deviceRef.current;
     
     const data: any = await emit("consume", {
       producerId, 
-      rtpCapabilities,
-      roomId, 
-      kind
+      rtpCapabilities, 
+      kind,
+      consumerTransportId: recvTransportRef.current.id
     });
 
     if (data.error) {
@@ -298,7 +292,10 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
       kind: data.params.kind,
       rtpParameters: data.params.rtpParameters,
     });
+
     const stream = new MediaStream([consumer.track]);
+
+    console.log("Stream received from server ", stream)
 
     // Resume on server
     socketRef.current?.emit("consumer-resume", { serverConsumerId: data.params.id, kind });
@@ -313,22 +310,21 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
                     return {
                         ...u,
                         videoStream: kind === 'video' ? stream : u.videoStream,
-                        audioStream: kind === 'audio' ? stream : u.audioStream,
                         videoConsumer: kind === 'video' ? consumer : u.videoConsumer,
-                        audioConsumer: kind === 'audio' ? consumer : u.audioConsumer,
+                        videoPaused: kind === "video" ? false : u.videoPaused,
                         
-                        videoPaused: kind === "video" ? false : true,
-                        audioPaused: kind === "video" ? false : true,
+                        audioStream: kind === 'audio' ? stream : u.audioStream,
+                        audioConsumer: kind === 'audio' ? consumer : u.audioConsumer,
+                        audioPaused: kind === "audio" ? false : u.audioPaused,
                     };
-                }
-                return u;
+                } else return u;
             });
         }
 
         // If user doesn't exist (edge case if user-joined event lagged), create new
         return [...prev, {
             socketId,
-            username: "Unknown", // Ideally passed from server
+            username: username, // Ideally passed from server
             videoStream: kind === 'video' ? stream : null,
             audioStream: kind === 'audio' ? stream : null,
             videoConsumer: kind === 'video' ? consumer : null,
@@ -338,29 +334,29 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
         }];
     });
     
-    setInterval(async () => {
-      try {
-        const stats = await consumer.getStats();
-        
-        // stats is a Map-like object. We iterate through it:
-        stats.forEach(report => {
-          if (report.type === 'inbound-rtp') {
-            console.log(`Packets Received: ${report.packetsReceived}`);
-            console.log(`Current Bitrate: ${report.bitrate} bps`);
-            
-            if (report.packetsReceived === 0) {
-              console.warn("No packets arriving despite consumer being active.");
-            }
-          }
-        });
-      } catch (error) {
-        console.error("Could not get consumer stats", error);
-      }
-    }, 2000);
-
+    if(kind === "audio"){
+      setInterval(async () => {
+        try {
+          const stats = await consumer.getStats();
+          console.log("stats ", stats)
+          // stats is a Map-like object. We iterate through it:
+          // stats.forEach(report => {
+          //   if (report.type === 'inbound-rtp') {
+          //     console.log(`Packets Received: ${report.packetsReceived}`);
+          //     console.log(`Current Bitrate: ${report.bitrate} bps`);
+              
+          //     if (report.packetsReceived === 0) {
+          //       console.warn("No packets arriving despite consumer being active.");
+          //     }
+          //   }
+          // });
+        } catch (error) {
+          console.error("Could not get consumer stats", error);
+        }
+      }, 2000);
+    }
   };
  
-  // --- CORE: Cleanup Logic ---
   const closeConsumer = (socketId: string, kind: string) => {
       setRemoteUsers(prev => prev.map(user => {
           if (user.socketId === socketId) {
@@ -397,14 +393,15 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
   // Effects
   useEffect(() => {
     
-      socketRef.current = io(`https://f77b41ee9948.ngrok-free.app`,{
+      socketRef.current = io(`https://a86b1fee52a2.ngrok-free.app`,{
         query: { username, roomId },
         extraHeaders: { "ngrok-skip-browser-warning": "69420" }
       });
 
       socketRef.current.on("connect", () => {
-        console.log("Socket connected");
+        console.log("Socket connected ", socketRef.current?.id);
         init();
+        setIsConnectionReady(true);
       });
 
       // 1. Handle New User Join (Create Placeholder)
@@ -441,8 +438,8 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
       });
 
       // 3. Handle New Stream Available
-      socketRef.current.on("new-producer", ({ producerId, socketId, kind }) => {
-        consumeStream(producerId, socketId, kind);
+      socketRef.current.on("new-producer", ({ producerId, socketId, kind, username }) => {
+        consumeStream(producerId, socketId, username, kind);
       });
 
       // 4. Handle Stream Closed (Mute/Camera Off)
@@ -467,8 +464,8 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
   }, []);
 
   useEffect(() => {
+    ensureStreamLink();
     if (mediaControl.camera && isTransportReady) startVideoBroadcast();
-    // Logic to handle turning OFF camera is inside startVideoBroadcast checks or needs explicit "else" here if toggled frequently
     else if (!mediaControl.camera && videoProducerRef.current) handleTurnOffCamera();
   }, [mediaControl.camera, isTransportReady]);
 
@@ -479,11 +476,21 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
 
   useEffect(()=>{
     if(remoteUsers.length>0){
+      const data = remoteUsers.map((data)=>{
+        return {username: data.username, socketid: data.socketId}
+      })
+      
+      console.log("Remote User ", data)
+
       calculateLayout();
       window.addEventListener('resize', calculateLayout);
       return () => window.removeEventListener('resize', calculateLayout);
     }
   }, [remoteUsers])
+
+  if(!isConnectionReady){
+    return <div>Loading</div>
+  }
 
   return (
     <div className='main-section' ref={containerRef}>
@@ -500,6 +507,7 @@ export default function MeetingPannel({ videoRef, roomId, username, socketRef }:
         {/* Remote Users Tiles */}
         {remoteUsers.map((user) => (
             <RemoteUsersVideoTile 
+                user={user}
                 videoPaused={user.videoPaused}
                 avatarColor={getUserColor(user.socketId)}
                 key={user.socketId}

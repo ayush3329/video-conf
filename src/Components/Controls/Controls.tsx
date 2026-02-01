@@ -14,10 +14,11 @@ interface ControlsProps {
   setTaskSection: React.Dispatch<React.SetStateAction<boolean>>
   videoRef: React.RefObject<HTMLVideoElement|null>,
   socketRef: any,
-  roomId: string
+  roomId: string,
+  streamRef: React.RefObject<MediaStream>
 }
 
-const Controls = ({roomId, videoRef, setChatSection, setTaskSection, setTranscriptionSection, socketRef}: ControlsProps) => {
+const Controls = ({roomId, videoRef, streamRef, setChatSection, setTaskSection, setTranscriptionSection, socketRef}: ControlsProps) => {
     const nav = useNavigate();
 
     return (
@@ -26,8 +27,8 @@ const Controls = ({roomId, videoRef, setChatSection, setTaskSection, setTranscri
         <div className='controls-left'><span>{roomId}</span></div>
         <div className='controls-center'>
 
-          <Mic videoRef={videoRef} /> {/* Mic */}
-          <Camera videoRef={videoRef}/> {/* Camera */}
+          <Mic videoRef={videoRef} streamRef={streamRef}/> {/* Mic */}
+          <Camera videoRef={videoRef} streamRef={streamRef}/> {/* Camera */}
           
           <div  className="control-btn"  onClick={()=> console.log("Share screen")}>
             <MdOutlineLaptop size={24} />
