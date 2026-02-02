@@ -1,10 +1,5 @@
-import { Socket } from "socket.io-client";
-
 export interface SFUInterface {
   videoRef: React.RefObject<HTMLVideoElement|null>;
-  roomId: string | null;
-  username: string | null;
-  socketRef: React.MutableRefObject<Socket | null>;
   streamRef: React.RefObject<MediaStream>
 }
 

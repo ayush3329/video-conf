@@ -9,16 +9,13 @@ import { useNavigate } from 'react-router-dom';
 
 
 interface ControlsProps {
-  setChatSection: React.Dispatch<React.SetStateAction<boolean>>,
-  setTranscriptionSection: React.Dispatch<React.SetStateAction<boolean>>,
-  setTaskSection: React.Dispatch<React.SetStateAction<boolean>>
   videoRef: React.RefObject<HTMLVideoElement|null>,
   socketRef: any,
   roomId: string,
   streamRef: React.RefObject<MediaStream>
 }
 
-const Controls = ({roomId, videoRef, streamRef, setChatSection, setTaskSection, setTranscriptionSection, socketRef}: ControlsProps) => {
+const Controls = ({roomId, videoRef, streamRef, socketRef}: ControlsProps) => {
     const nav = useNavigate();
 
     return (
@@ -58,3 +55,19 @@ const Controls = ({roomId, videoRef, streamRef, setChatSection, setTaskSection, 
 }
 
 export default Controls;
+
+
+/*
+
+
+<div id="meetingView" className="w-100 h-100 position-relative">
+  <div className="video-container" >
+  <Transcription toggleSidebar={toggleSidebar} transcriptionSection={transcriptionSection}/>
+    <SFUClient videoRef={videoRef} roomId={roomId} username={username} socketRef={socketRef}/>
+    <Chat toggleSidebar={toggleSidebar} chatSection={chatSection}/>
+    <Tasks toggleSidebar={toggleSidebar} taskSection={taskSection}/>
+  </div>
+  <Controls socketRef={socketRef} videoRef={videoRef} setChatSection={setChatSection} setTaskSection={setTaskSection} setTranscriptionSection={setTranscriptionSection}/>
+</div> 
+
+*/

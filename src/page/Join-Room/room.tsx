@@ -8,7 +8,7 @@ import { mediaState } from '../../types/redux-state-types';
 import { useDispatch, useSelector } from 'react-redux';
 import { turnOnCamera, turnOnMic, turnOffCamera, turnOffMic } from "../../redux/states/media-controls/mediaControlSlice"
 
-const Room = ({videoRef, streamRef}: {videoRef: React.RefObject<null>, streamRef: React.RefObject<MediaStream>}) => {
+const Room = ({videoRef, streamRef}: {videoRef: React.RefObject<HTMLVideoElement | null>, streamRef: React.RefObject<MediaStream>}) => {
   const nav = useNavigate();
 
   // --- STATE ---
@@ -20,9 +20,6 @@ const Room = ({videoRef, streamRef}: {videoRef: React.RefObject<null>, streamRef
   const mediaControl: mediaState = useSelector((state: RootState)=> state.media)
 
   const ensureStreamLinked = ()=>{
-    console.log(videoRef.current)
-    console.log(videoRef.current.srcObject)
-    console.log(streamRef.current)
     if(videoRef.current && videoRef.current.srcObject !== streamRef.current){
         videoRef.current.srcObject = streamRef.current;
     }

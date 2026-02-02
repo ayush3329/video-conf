@@ -18,7 +18,7 @@ const Meeting = ({videoRef, streamRef}: {videoRef: React.RefObject<null>, stream
   const roomId = searchParams.get("roomid") || null;
   const username = searchParams.get("username") || null;
 
-  const socketRef = useRef<Socket | null>(null); // holds the websocket connection
+  const socketRef = useRef<Socket | null>(null); 
 
   
 

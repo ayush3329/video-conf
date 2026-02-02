@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Device } from "mediasoup-client";
-import io from "socket.io-client";
+import io, { Socket } from "socket.io-client";
 import { AppDispatch, RootState } from "../../redux/states/store";
 import { mediaState } from "../../types/redux-state-types";
 import { useDispatch, useSelector } from "react-redux";
@@ -9,10 +9,16 @@ import HostVideoTile from "../VideoTile/HostVideoTile/HostVideoTile";
 import RemoteUsersVideoTile from "../VideoTile/RemoteUsersVideoTile/RemoteUsersVideoTile";
 import {getUserColor} from "../../utility/utility"
 import { RemotePeer, SFUInterface } from "../../types/MeetingPannelType";
+import Controls from "../Controls/Controls";
+import { useSearchParams } from "react-router-dom";
 
 
 
-export default function MeetingPannel({streamRef, videoRef, roomId, username, socketRef }: SFUInterface) {
+export default function MeetingPannel({streamRef, videoRef }: SFUInterface) {
+
+  const [searchParams] = useSearchParams();
+  const roomId = searchParams.get("roomid") || null;
+  const username = searchParams.get("username") || null;
 
   const dispatch = useDispatch<AppDispatch>();
   const mediaControl: mediaState = useSelector((state: RootState) => state.media);
@@ -30,8 +36,9 @@ export default function MeetingPannel({streamRef, videoRef, roomId, username, so
   const recvTransportRef = useRef<any>(null); //Consumer Transport Ref
   const videoProducerRef = useRef<any>(null);  
   const audioProducerRef = useRef<any>(null);
+  const statsIntervalRef = useRef<any>(null);
+  const socketRef = useRef<Socket | null>(null); 
 
-  
 
   // Helper Function
   const calculateLayout = () => {
@@ -99,6 +106,7 @@ export default function MeetingPannel({streamRef, videoRef, roomId, username, so
         track: videoTrack,
         appData: { kind: "video" }
       });
+      console.log("Creating new video track");
       videoProducerRef.current = videoProducer;
     } catch (err) {
       console.error("Failed to publish video", err);
@@ -159,11 +167,10 @@ export default function MeetingPannel({streamRef, videoRef, roomId, username, so
   const handleTurnOffMic = async () => {
     // Fix This function, same as handleTurnOffCamera
     if (audioProducerRef.current) {
-      audioProducerRef.current.close();
-      await emit("close-producer", { producerId: audioProducerRef.current.id });
-      audioProducerRef.current = null;
+      audioProducerRef.current.pause();
+      stopHardwareTrack('audio');
+      await emit("pause-producer", { kind: "audio" });
     }
-    stopHardwareTrack('audio');
     dispatch(turnOffMic());
   };
 
@@ -246,7 +253,7 @@ export default function MeetingPannel({streamRef, videoRef, roomId, username, so
         .then(callback).catch(errback);
     });
   };
-
+  
   const init = async () => {
     try {
       const routerRtpCapabilities = await emit("getRouterRtpCapabilities", { roomId });
@@ -270,7 +277,6 @@ export default function MeetingPannel({streamRef, videoRef, roomId, username, so
     }
   };
 
-  
   const consumeStream = async (producerId: string, socketId: string, username: string, kind: string) => {
     const { rtpCapabilities } = deviceRef.current;
     
@@ -335,7 +341,7 @@ export default function MeetingPannel({streamRef, videoRef, roomId, username, so
     });
     
     if(kind === "audio"){
-      setInterval(async () => {
+      statsIntervalRef.current = setInterval(async () => {
         try {
           const stats = await consumer.getStats();
           console.log("stats ", stats)
@@ -389,11 +395,10 @@ export default function MeetingPannel({streamRef, videoRef, roomId, username, so
   };
 
 
-
   // Effects
   useEffect(() => {
     
-      socketRef.current = io(`https://a86b1fee52a2.ngrok-free.app`,{
+      socketRef.current = io(`https://70d0058380a0.ngrok-free.app`,{
         query: { username, roomId },
         extraHeaders: { "ngrok-skip-browser-warning": "69420" }
       });
@@ -460,6 +465,11 @@ export default function MeetingPannel({streamRef, videoRef, roomId, username, so
     
     return () => {
       socketRef.current?.disconnect();
+      videoProducerRef.current?.close();
+      audioProducerRef.current?.close();
+      sendTransportRef.current?.close();
+      recvTransportRef.current?.close();
+      if(statsIntervalRef.current) clearInterval(statsIntervalRef.current);
     };
   }, []);
 
@@ -470,6 +480,7 @@ export default function MeetingPannel({streamRef, videoRef, roomId, username, so
   }, [mediaControl.camera, isTransportReady]);
 
   useEffect(() => {
+    ensureStreamLink();
     if (mediaControl.mic && isTransportReady) startAudioBroadcast();
     else if (!mediaControl.mic && audioProducerRef.current) handleTurnOffMic();
   }, [mediaControl.mic, isTransportReady]);
@@ -489,36 +500,55 @@ export default function MeetingPannel({streamRef, videoRef, roomId, username, so
   }, [remoteUsers])
 
   if(!isConnectionReady){
-    return <div>Loading</div>
+    return <div style={{
+        height: "100vh", 
+        width: "100vw",   
+        backgroundColor: "#202124",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        color: "white",
+        fontSize: "24px"
+      }}>Connecting...</div>
   }
 
   return (
-    <div className='main-section' ref={containerRef}>
+    <div className='main-cont'>
 
-          <HostVideoTile 
-            avatarColor={getUserColor(socketRef.current?.id || "You")}
-            remoteUser={remoteUsers.length}
-            height={tileSize.height}
-            width={tileSize.width}
-            username="You"
-            videoRef={videoRef}
-          />
+      <div className='main-section' ref={containerRef}>
 
-        {/* Remote Users Tiles */}
-        {remoteUsers.map((user) => (
-            <RemoteUsersVideoTile 
-                user={user}
-                videoPaused={user.videoPaused}
-                avatarColor={getUserColor(user.socketId)}
-                key={user.socketId}
-                height={tileSize.height}
-                width={tileSize.width}
-                stream={user.videoStream} 
-                audioStream={user.audioStream} // Pass audio inside
-                username={user.username} 
+            <HostVideoTile 
+              avatarColor={getUserColor(socketRef.current?.id || "You")}
+              remoteUser={remoteUsers.length}
+              height={tileSize.height}
+              width={tileSize.width}
+              username="You"
+              videoRef={videoRef}
             />
-        ))}
 
+          {/* Remote Users Tiles */}
+          {remoteUsers.map((user) => (
+              <RemoteUsersVideoTile 
+                  user={user}
+                  videoPaused={user.videoPaused}
+                  avatarColor={getUserColor(user.socketId)}
+                  key={user.socketId}
+                  height={tileSize.height}
+                  width={tileSize.width}
+                  stream={user.videoStream} 
+                  audioStream={user.audioStream} // Pass audio inside
+                  username={user.username} 
+              />
+          ))}
+
+      </div>
+      
+      <Controls 
+          socketRef={socketRef} 
+          videoRef={videoRef} 
+          roomId={roomId || ""}
+          streamRef={streamRef}
+      />
     </div>
   );
 }
